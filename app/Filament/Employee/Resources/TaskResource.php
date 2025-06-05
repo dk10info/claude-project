@@ -8,6 +8,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -34,6 +35,8 @@ class TaskResource extends Resource
                                 'pending' => 'Pending',
                                 'in_progress' => 'In Progress',
                                 'completed' => 'Completed',
+                                'in_review' => 'In Review',
+                                'waiting_on' => 'Waiting On',
                             ])
                             ->required()
                             ->helperText('Update the task status'),
@@ -49,9 +52,6 @@ class TaskResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(50),
-                Tables\Columns\TextColumn::make('description')
-                    ->limit(50)
-                    ->toggleable(),
                 Tables\Columns\TextColumn::make('due_date')
                     ->label('Due Date')
                     ->date()
@@ -69,11 +69,14 @@ class TaskResource extends Resource
                         'warning' => 'pending',
                         'info' => 'in_progress',
                         'success' => 'completed',
+                        'primary' => 'in_review',
                         'danger' => 'cancelled',
+                        'danger' => 'waiting_on',
                     ]),
-                Tables\Columns\TextColumn::make('createdBy.name')
-                    ->label('Assigned By')
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('total_tracked_time')
+                    ->label('Time Tracked')
+                    ->badge()
+                    ->color('success'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -85,6 +88,8 @@ class TaskResource extends Resource
                         'pending' => 'Pending',
                         'in_progress' => 'In Progress',
                         'completed' => 'Completed',
+                        'in_review' => 'In Review',
+                        'waiting_on' => 'Waiting On',
                     ])
                     ->multiple(),
                 Tables\Filters\SelectFilter::make('priority')
@@ -104,17 +109,61 @@ class TaskResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
+                    ->label('Update Status')
                     ->form([
                         Forms\Components\Select::make('status')
                             ->options([
                                 'in_progress' => 'In Progress',
                                 'completed' => 'Completed',
+                                'in_review' => 'In Review',
                             ])
                             ->required()
                             ->helperText('Update the task status'),
                     ])
                     ->using(function (Task $record, array $data): Task {
+                        $user = auth()->user();
+                        $oldStatus = $record->status;
                         $record->update(['status' => $data['status']]);
+
+                        // Notify admins
+                        $admins = \App\Models\User::role('admin')->get();
+                        foreach ($admins as $admin) {
+                            $admin->notify(
+                                Notification::make()
+                                    ->title('Task Status Updated')
+                                    ->body("{$user->name} updated task '{$record->title}' status from {$oldStatus} to {$data['status']}")
+                                    ->icon('heroicon-o-pencil-square')
+                                    ->info()
+                                    ->actions([
+                                        \Filament\Notifications\Actions\Action::make('view')
+                                            ->label('View Task')
+                                            ->url(TaskResource::getUrl('view', ['record' => $record->id], true, 'admin'))
+                                            ->markAsRead(),
+                                    ])
+                                    ->toDatabase()
+                            );
+                        }
+
+                        // Notify all assigned employees except who performed action
+                        foreach ($record->assignedUsers as $assignedUser) {
+                            if ($assignedUser->id === $user->id) {
+                                continue;
+                            }
+                            $assignedUser->notify(
+                                Notification::make()
+                                    ->title('Task Status Updated')
+                                    ->body("{$user->name} updated task '{$record->title}' status from {$oldStatus} to {$data['status']}")
+                                    ->icon('heroicon-o-pencil-square')
+                                    ->info()
+                                    ->actions([
+                                        \Filament\Notifications\Actions\Action::make('view')
+                                            ->label('View Task')
+                                            ->url(TaskResource::getUrl('view', ['record' => $record->id]))
+                                            ->markAsRead(),
+                                    ])
+                                    ->toDatabase()
+                            );
+                        }
 
                         return $record;
                     })
@@ -155,7 +204,10 @@ class TaskResource extends Resource
                                 'pending' => 'warning',
                                 'in_progress' => 'info',
                                 'completed' => 'success',
+                                'in_review' => 'primary',
                                 'cancelled' => 'danger',
+                                'waiting_on' => 'warning',
+                                default => 'secondary',
                             }),
                         Infolists\Components\TextEntry::make('createdBy.name')
                             ->label('Assigned By'),
@@ -173,8 +225,9 @@ class TaskResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('assigned_to', auth()->id())
-            ->whereNot('status', 'cancelled');
+            ->whereHas('assignedUsers', function ($query) {
+                $query->where('users.id', auth()->id());
+            });
     }
 
     public static function getPages(): array

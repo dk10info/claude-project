@@ -14,7 +14,7 @@ class LandingController extends Controller
 
             if ($user->hasRole('admin')) {
                 return redirect('/admin');
-            } elseif ($user->hasRole('employee')) {
+            } elseif ($user->hasAnyRole(['employee'])) {
                 return redirect('/employee');
             }
         }

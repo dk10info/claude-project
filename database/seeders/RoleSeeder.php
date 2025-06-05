@@ -49,6 +49,36 @@ class RoleSeeder extends Seeder
             ]
         );
 
+        $employee1 = User::firstOrCreate(
+            ['email' => 'disha@example.com'],
+            [
+                'name' => 'Disha',
+                'password' => bcrypt('password'),
+                'employee_code' => 'EMP002',
+                'mobile_number' => '+1234567891',
+                'date_of_joining' => now()->subMonths(6),
+                'position' => 'Sr Developer',
+                'department' => 'IT',
+                'status' => 'active',
+            ]
+        );
+
+        $employee2 = User::firstOrCreate(
+            ['email' => 'john@example.com'],
+            [
+                'name' => 'John Doe',
+                'password' => bcrypt('password'),
+                'employee_code' => 'EMP003',
+                'mobile_number' => '+1234567890',
+                'date_of_joining' => now()->subMonths(6),
+                'position' => 'Software Developer',
+                'department' => 'IT',
+                'status' => 'active',
+            ]
+        );
+
         $employee->assignRole($employeeRole);
+        $employee1->assignRole($employeeRole);
+        $employee2->assignRole($employeeRole);
     }
 }

@@ -11,6 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class EmployeeResource extends Resource
 {
@@ -76,6 +77,30 @@ class EmployeeResource extends Resource
                             ->required(),
                     ])
                     ->columns(2),
+                Forms\Components\Section::make('Role & Permissions')
+                    ->schema([
+                        Forms\Components\Select::make('role')
+                            ->label('Role')
+                            ->options(
+                                Role::whereIn('name', ['employee'])
+                                    ->pluck('name', 'name')
+                                    ->toArray()
+                            )
+                            ->default('employee')
+                            ->required()
+                            ->helperText('Select the role for this employee. This will determine their permissions.')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                // Show permissions that will be granted
+                                $role = Role::findByName($state);
+                                $permissions = $role->permissions->pluck('name')->implode(', ');
+                                $set('role_permissions', $permissions ?: 'No permissions');
+                            }),
+                        Forms\Components\Placeholder::make('role_permissions')
+                            ->label('Permissions that will be granted')
+                            ->content(fn ($get) => $get('role_permissions') ?? 'Select a role to see permissions'),
+                    ])
+                    ->columns(1),
             ]);
     }
 
@@ -106,6 +131,15 @@ class EmployeeResource extends Resource
                 Tables\Columns\TextColumn::make('department')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->label('Role')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'admin' => 'danger',
+                        'employee' => 'success',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => ucfirst(str_replace('_', ' ', $state))),
                 Tables\Columns\BadgeColumn::make('status')
                     ->colors([
                         'success' => 'active',
@@ -164,7 +198,7 @@ class EmployeeResource extends Resource
     {
         return parent::getEloquentQuery()
             ->whereHas('roles', function ($query) {
-                $query->where('name', 'employee');
+                $query->whereIn('name', ['employee']);
             });
     }
 }

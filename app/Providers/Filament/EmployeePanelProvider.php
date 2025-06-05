@@ -2,12 +2,12 @@
 
 namespace App\Providers\Filament;
 
+use App\Http\Middleware\ApplyFilamentDarkMode;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\FilamentAuthenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Navigation\MenuItem;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -30,9 +30,9 @@ class EmployeePanelProvider extends PanelProvider
                 'primary' => Color::Blue,
             ])
             ->brandName('Employee Portal')
+            ->databaseNotifications()
             ->brandLogo(null)
             ->favicon(null)
-            ->profile()
             ->discoverResources(in: app_path('Filament/Employee/Resources'), for: 'App\\Filament\\Employee\\Resources')
             ->discoverPages(in: app_path('Filament/Employee/Pages'), for: 'App\\Filament\\Employee\\Pages')
             ->pages([
@@ -40,7 +40,7 @@ class EmployeePanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Employee/Widgets'), for: 'App\\Filament\\Employee\\Widgets')
             ->widgets([
-                \App\Filament\Employee\Widgets\WelcomeWidget::class,
+                \App\Filament\Employee\Widgets\ActiveTimerWidget::class,
                 \App\Filament\Employee\Widgets\TaskStatsWidget::class,
                 \App\Filament\Employee\Widgets\RecentTasksWidget::class,
             ])
@@ -54,16 +54,11 @@ class EmployeePanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                ApplyFilamentDarkMode::class,
             ])
             ->authMiddleware([
                 FilamentAuthenticate::class,
                 EnsureUserHasRole::class.':employee',
-            ])
-            ->userMenuItems([
-                MenuItem::make()
-                    ->label('Logout')
-                    ->postAction('logout')
-                    ->icon('heroicon-o-arrow-right-on-rectangle'),
             ]);
     }
 }

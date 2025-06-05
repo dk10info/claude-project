@@ -13,9 +13,16 @@ class EnsureUserHasRole
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string $roles): Response
     {
-        if (! $request->user() || ! $request->user()->hasRole($role)) {
+        if (! $request->user()) {
+            abort(403, 'Unauthorized');
+        }
+
+        // Handle multiple roles separated by pipe
+        $rolesArray = explode('|', $roles);
+
+        if (! $request->user()->hasAnyRole($rolesArray)) {
             abort(403, 'Unauthorized');
         }
 

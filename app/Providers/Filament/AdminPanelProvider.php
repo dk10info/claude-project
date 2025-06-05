@@ -2,11 +2,11 @@
 
 namespace App\Providers\Filament;
 
+use App\Http\Middleware\ApplyFilamentDarkMode;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\FilamentAuthenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Navigation\MenuItem;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -32,6 +32,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->brandName('Admin Panel')
+            ->databaseNotifications()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -51,16 +52,11 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                ApplyFilamentDarkMode::class,
             ])
             ->authMiddleware([
                 FilamentAuthenticate::class,
                 EnsureUserHasRole::class.':admin',
-            ])
-            ->userMenuItems([
-                MenuItem::make()
-                    ->label('Logout')
-                    ->postAction('logout')
-                    ->icon('heroicon-o-arrow-right-on-rectangle'),
             ]);
     }
 }

@@ -15,27 +15,43 @@ class TaskStatsWidget extends BaseWidget
         $userId = auth()->id();
 
         // Get all non-cancelled tasks assigned to the employee
-        $totalTasks = Task::where('assigned_to', $userId)
+        $totalTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
+            $query->where('users.id', $userId);
+        })
             ->whereNot('status', 'cancelled')
             ->count();
 
         // Get pending tasks
-        $pendingTasks = Task::where('assigned_to', $userId)
+        $pendingTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
+            $query->where('users.id', $userId);
+        })
             ->where('status', 'pending')
             ->count();
 
         // Get in progress tasks
-        $inProgressTasks = Task::where('assigned_to', $userId)
+        $inProgressTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
+            $query->where('users.id', $userId);
+        })
             ->where('status', 'in_progress')
             ->count();
 
         // Get completed tasks
-        $completedTasks = Task::where('assigned_to', $userId)
+        $completedTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
+            $query->where('users.id', $userId);
+        })
             ->where('status', 'completed')
             ->count();
 
+        $inReviewTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
+            $query->where('users.id', $userId);
+        })
+            ->where('status', 'in_review')
+            ->count();
+
         // Get overdue tasks
-        $overdueTasks = Task::where('assigned_to', $userId)
+        $overdueTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
+            $query->where('users.id', $userId);
+        })
             ->where('due_date', '<', now())
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->count();
@@ -60,6 +76,11 @@ class TaskStatsWidget extends BaseWidget
                 ->description('Successfully finished')
                 ->descriptionIcon('heroicon-m-check-circle')
                 ->color('success'),
+
+            Stat::make('In Review Tasks', $inReviewTasks)
+                ->description('Waiting for review')
+                ->descriptionIcon('heroicon-m-check-circle')
+                ->color('secondary'),
         ];
     }
 }
