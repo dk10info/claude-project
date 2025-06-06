@@ -2,7 +2,6 @@
 
 namespace App\Providers\Filament;
 
-use App\Http\Middleware\ApplyFilamentDarkMode;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\FilamentAuthenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -52,7 +51,6 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                ApplyFilamentDarkMode::class,
             ])
             ->authMiddleware([
                 FilamentAuthenticate::class,

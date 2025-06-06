@@ -31,6 +31,11 @@ class TaskKanban extends Page implements HasForms
 
     public ?string $endDate = null;
 
+    public function getTitle(): string
+    {
+        return '';
+    }
+
     public function mount(): void
     {
         // Set default to current week
