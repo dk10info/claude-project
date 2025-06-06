@@ -88,6 +88,7 @@ class TaskResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['assignedUsers', 'createdBy']))
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->searchable()
@@ -166,11 +167,11 @@ class TaskResource extends Resource
                     ->multiple(),
                 Tables\Filters\SelectFilter::make('assignedUsers')
                     ->label('Assigned To')
-                    ->relationship('assignedUsers', 'name')
                     ->options(function () {
-                        return User::whereHas('roles', function ($query) {
-                            $query->whereIn('name', ['employee']);
-                        })->pluck('name', 'id');
+                        return User::role(['employee'])
+                            ->where('status', 'active')
+                            ->select('id', 'name')
+                            ->pluck('name', 'id');
                     })
                     ->searchable()
                     ->preload()
@@ -212,6 +213,7 @@ class TaskResource extends Resource
                             ->options(function () {
                                 return User::role(['employee'])
                                     ->where('status', 'active')
+                                    ->select('id', 'name')
                                     ->pluck('name', 'id');
                             })
                             ->multiple()
@@ -328,9 +330,7 @@ class TaskResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

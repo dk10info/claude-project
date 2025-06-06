@@ -89,11 +89,17 @@ class LandingPage extends Component
     {
         $this->validate();
 
-        if (Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
-            $user = Auth::user();
+        // Optimize authentication with eager loading
+        $credentials = ['email' => $this->email, 'password' => $this->password];
 
-            // Check if employee is active
-            if ($user->hasAnyRole(['employee']) && $user->status !== 'active') {
+        if (Auth::attempt($credentials, $this->remember)) {
+            $user = Auth::user()->load('roles');
+
+            // Direct role check without caching
+            $userRoles = $user->roles->pluck('name')->toArray();
+
+            // Quick status check for employees
+            if (in_array('employee', $userRoles) && $user->status !== 'active') {
                 Auth::logout();
                 $this->loginError = 'Your account is inactive. Please contact support.';
 

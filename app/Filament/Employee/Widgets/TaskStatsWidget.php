@@ -14,45 +14,21 @@ class TaskStatsWidget extends BaseWidget
     {
         $userId = auth()->id();
 
-        // Get all non-cancelled tasks assigned to the employee
-        $totalTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
+        // Single query to get all task counts and status data
+        $tasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
             $query->where('users.id', $userId);
         })
-            ->whereNot('status', 'cancelled')
-            ->count();
+            ->select('status', 'due_date')
+            ->get();
 
-        // Get pending tasks
-        $pendingTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
-            $query->where('users.id', $userId);
-        })
-            ->where('status', 'pending')
-            ->count();
+        $totalTasks = $tasks->whereNotIn('status', ['cancelled'])->count();
+        $pendingTasks = $tasks->where('status', 'pending')->count();
+        $inProgressTasks = $tasks->where('status', 'in_progress')->count();
+        $completedTasks = $tasks->where('status', 'completed')->count();
+        $inReviewTasks = $tasks->where('status', 'in_review')->count();
 
-        // Get in progress tasks
-        $inProgressTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
-            $query->where('users.id', $userId);
-        })
-            ->where('status', 'in_progress')
-            ->count();
-
-        // Get completed tasks
-        $completedTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
-            $query->where('users.id', $userId);
-        })
-            ->where('status', 'completed')
-            ->count();
-
-        $inReviewTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
-            $query->where('users.id', $userId);
-        })
-            ->where('status', 'in_review')
-            ->count();
-
-        // Get overdue tasks
-        $overdueTasks = Task::whereHas('assignedUsers', function ($query) use ($userId) {
-            $query->where('users.id', $userId);
-        })
-            ->where('due_date', '<', now())
+        $overdueTasks = $tasks
+            ->filter(fn ($task) => $task->due_date < now())
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->count();
 

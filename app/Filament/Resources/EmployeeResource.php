@@ -160,11 +160,12 @@ class EmployeeResource extends Resource
                         'terminated' => 'Terminated',
                     ]),
                 Tables\Filters\SelectFilter::make('department')
-                    ->options(fn () => User::whereHasRole('employee')
-                        ->whereNotNull('department')
-                        ->distinct()
-                        ->pluck('department', 'department')
-                        ->toArray()
+                    ->options(
+                        fn () => User::whereNotNull('department')
+                            ->distinct()
+                            ->select('department')
+                            ->pluck('department', 'department')
+                            ->toArray()
                     ),
             ])
             ->actions([
@@ -197,6 +198,7 @@ class EmployeeResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with(['roles'])
             ->whereHas('roles', function ($query) {
                 $query->whereIn('name', ['employee']);
             });

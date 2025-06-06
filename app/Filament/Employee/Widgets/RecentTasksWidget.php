@@ -20,10 +20,12 @@ class RecentTasksWidget extends BaseWidget
         return $table
             ->query(
                 Task::query()
+                    ->with(['assignedUsers:id,name'])
                     ->whereHas('assignedUsers', function ($query) {
                         $query->where('users.id', auth()->id());
                     })
                     ->whereIn('status', ['pending', 'in_progress'])
+                    ->select('id', 'title', 'due_date', 'priority', 'status')
                     ->orderBy('due_date', 'asc')
                     ->limit(5)
             )
